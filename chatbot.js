@@ -1,5 +1,10 @@
 var express = require('express');
+var request = require('request');
 var bodyParser = require('body-parser');
+var TelegramBot = require('node-telegram-bot-api');
+
+var token = 'ТУТ_ВСТАВЛЯЕМ_ТОКЕН';
+var bot = new TelegramBot(token, {polling: true});
 
 var app = express();
 
