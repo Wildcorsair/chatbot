@@ -36,8 +36,6 @@ Reminder.prototype.create = function(ctx) {
     this.save(ctx.update.message.from.id, record);
     this.action = '';
   }
-
-  console.log('DATA:', this.data);
 };
 
 Reminder.prototype.delete = function(ctx) {
@@ -60,6 +58,7 @@ Reminder.prototype.save = function(id, record) {
 };
 
 Reminder.prototype.load = function(id) {
+  // console.log('DATA:', this.data);
   if (id in this.data) {
     return this.data[id];
   }
@@ -75,22 +74,71 @@ Reminder.prototype.actionRoute = function(ctx) {
     let action = parts[0];
     let reminderId = parts[1];
 
-    this[action](fromId, reminderId);
+    this[action](ctx, fromId, reminderId);
   }
 };
 
-Reminder.prototype.confirm = function(fromId, reminderId) {
+/**
+ * Method marks selected reminder as confirmed.
+ *
+ * @param {object} ctx Message context
+ * @param {integer} fromId Telegram user identifier
+ * @param {string} reminderId Reminder identifier
+ */
+Reminder.prototype.confirm = function(ctx, fromId, reminderId) {
+  let messageId = ctx.update.callback_query.message.message_id;
+  let chatId = ctx.update.callback_query.message.chat.id;
   let remindersList = this.load(fromId);
-  for (let i = 0; i < remindersList.length - 1; i++) {
+
+  for (let i = 0; i < remindersList.length; i++) {
     if (remindersList[i].id == reminderId) {
       remindersList[i].confirmed = true;
+      ctx.answerCbQuery('Your reminder was successfully confirmed!');
+      ctx.tg.deleteMessage(chatId, messageId);
     }
   }
 }
 
-Reminder.prototype.snooze = function(fromId, reminderId) {
-  console.log(fromId);
-  console.log(reminderId);
+/**
+ * Method snoozes selected reminder to one day.
+ *
+ * @param {object} ctx Message context
+ * @param {integer} fromId Telegram user identifier
+ * @param {string} reminderId Reminder identifier
+ */
+Reminder.prototype.snooze = function(ctx, fromId, reminderId) {
+  let remindersList = this.load(fromId);
+
+  for (let i = 0; i < remindersList.length; i++) {
+    if (remindersList[i].id == reminderId) {
+      console.log('snooze');
+      let incDate = this.increaseOneDay(remindersList[i].date);
+      remindersList[i].date = incDate;
+      ctx.answerCbQuery('Your reminder was successfully snoozed on one day!');
+    }
+  }
+}
+
+/**
+ * Method increases the granted date to one day.
+ *
+ * @param {string} oldDate Date in string format
+ */
+Reminder.prototype.increaseOneDay = function(oldDate) {
+  let reminderDate = new Date(oldDate);
+  reminderDate.setDate(reminderDate.getDate() + 1);
+  let year  = reminderDate.getFullYear();
+  let month = this.prependZero(reminderDate.getMonth() + 1);
+  let day   = this.prependZero(reminderDate.getDate());
+  return year + "-" + month + "-" + day;
+}
+
+Reminder.prototype.prependZero = function(value) {
+  if (value < 10) {
+    return '0' + value;
+  } else {
+    return value;
+  }
 }
 
 module.exports = Reminder;

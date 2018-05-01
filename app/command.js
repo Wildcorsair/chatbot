@@ -1,3 +1,4 @@
+const uniqid = require('uniqid');
 const Extra  = require('telegraf/extra');
 
 function Command(dialogflow, reminder) {
@@ -53,17 +54,19 @@ Command.prototype.listAll = function(ctx) {
       .markup((m) => m.inlineKeyboard([
         m.callbackButton('Confirm', 'confirm:' + reminders[i].id),
         m.callbackButton('Snooze', 'snooze:' + reminders[i].id)
-      ]).resize());
+      ]));
 
-    let resultText = reminders[i].date + ': ' + reminders[i].text + "\n";
-    ctx.reply(resultText, contextMenu);
+    if (reminders[i].confirmed == 'false') {
+      let resultText = reminders[i].date + ': ' + reminders[i].text + "\n";
+      ctx.reply(resultText, contextMenu);
+    }
   }
 
 };
 
 Command.prototype.request = function(ctx) {
   var request = this.dialogflow.textRequest(ctx.update.message.text, {
-    sessionId: '321456789'
+    sessionId: uniqid()
   });
 
   request.on('response', function(response) {

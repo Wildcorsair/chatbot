@@ -19,7 +19,7 @@ bot.command('menu', (ctx) => {
   return ctx.reply('You can handle your reminders by my menu.', Extra.markup(
     Markup.keyboard(['/create', '/listAll', '/today'], {
       wrap: (btn, index, currentRow) => currentRow.length >= 3
-    })
+    }).resize()
   ))
 })
 
@@ -36,8 +36,7 @@ bot.hears(/(.*)/i, (ctx, msg) => {
 });
 
 bot.action(/(.*)/i, (ctx) => {
-  // ctx.answerCbQuery('Yap-yap!!!');
   reminder.actionRoute(ctx);
 });
 
-bot.startPolling()
+bot.startPolling();
