@@ -1,44 +1,65 @@
-const http = require('http');
-const config = require('./config/config');
+const http     = require('http');
+const apiai    = require('apiai');
 const Telegraf = require('telegraf');
+const Extra = require('telegraf/extra');
+const Markup   = require('telegraf/markup');
+const config   = require('./config/config');
 
-const bot = new Telegraf(config.token);
+const bot = new Telegraf(config.telegram.token);
+const app = apiai(config.apiai.token);
 
-bot.start((ctx) => ctx.reply('Welcome!'));
+let flag = 'nowait';
+
+bot.start((ctx) => ctx.reply('Welcome to chat with JohnSilverBot!'));
 // bot.help((ctx) => ctx.reply('Send me a sticker'));
 // bot.on('sticker', (ctx) => ctx.reply('👍'));
-bot.hears('hi', (ctx) => ctx.reply('Hey there'));
-bot.hears(/buy/i, (ctx) => ctx.reply('Buy-buy'));
-bot.hears(/setivent/i, (ctx) => {
-    ctx.reply(ctx.from.id);
-});
+// bot.hears('hi', (ctx) => ctx.reply('Hey there'));
+// bot.hears(/buy/i, (ctx) => ctx.reply('Buy-buy'));
+// bot.hears(/setivent/i, (ctx) => {
+//     ctx.reply(ctx.from.id);
+// });
 
-bot.hears(/request/i, (ctx) => {
-    console.log('fuck');
-    const options = {
-        host: 'https://api.dialogflow.com/v1/query?v=20150910&contexts=shop&lang=en&query=apple&sessionId=12345&timezone=America/New_York',
-        port: 80,
-        path: '/',
-        headers: {
-            'Authorization': 'Bearer bab92c34ca564b8abe278ad8fbfaa511'
-        },
-        method: 'GET'
-    };
+bot.command('menu', (ctx) => {
+  return ctx.reply('You can handle your reminders by my menu.', Extra.markup(
+    Markup.keyboard(['/create', '/delete', '/listall', '/today'], {
+      wrap: (btn, index, currentRow) => currentRow.length >= 2
+    })
+  ))
+})
 
-    let req = http.request(options, function(res) {
-        console.log('STATUS: ' + res.statusCode);
-        console.log('HEADERS: ' + JSON.stringify(res.headers));
-        res.setEncoding('utf8');
-        res.on('data', function (chunk) {
-          console.log('BODY: ' + chunk);
-        });
-    });
+// bot.command('pyramid', (ctx) => {
+//   return ctx.reply('Keyboard wrap', Extra.markup(
+//     Markup.keyboard(['create', 'delete', 'three', 'four', 'five', 'six'], {
+//       wrap: (btn, index, currentRow) => currentRow.length >= (index + 1) / 2
+//     })
+//   ));
+// });
 
-    req.on('error', function(e) {
-        console.log('problem with request: ' + e.message);
-    });
+bot.hears(/(.*)/i, (ctx, msg) => {
 
-    req.end();
+  if (flag === 'wait') {
+    console.log(ctx.update.message.text);
+    flag = 'nowait';
+  }
+
+  if (ctx.update.message.text === '/create') {
+    flag = 'wait';
+    console.log(flag);
+  }
+
+  var request = app.textRequest(ctx.update.message.text, {
+    sessionId: '321456789'
+  });
+
+  request.on('response', function(response) {
+    ctx.reply(response.result.fulfillment.speech);
+  });
+
+  request.on('error', function(error) {
+    console.log(error);
+  });
+
+  request.end();
 });
 
 bot.startPolling()
