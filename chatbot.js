@@ -4,13 +4,15 @@ const Telegraf = require('telegraf');
 const Extra    = require('telegraf/extra');
 const Markup   = require('telegraf/markup');
 const config   = require('./config/config');
+const Database = require('./app/database');
 const Command  = require('./app/command');
 const Reminder = require('./app/reminder');
 
 const bot = new Telegraf(config.telegram.token);
 const app = apiai(config.apiai.token);
+const database = new Database();
 
-let reminder      = new Reminder();
+let reminder      = new Reminder(database);
 let commandRouter = new Command(app, reminder);
 
 bot.start((ctx) => ctx.reply('Welcome to chat with JohnSilverBot!\nType /menu to see my actions.'));

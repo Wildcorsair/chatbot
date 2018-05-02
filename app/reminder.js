@@ -1,9 +1,10 @@
-const https  = require('https');
-const uniqid = require('uniqid');
-const Extra  = require('telegraf/extra');
+const https           = require('https');
+const uniqid          = require('uniqid');
+const Extra           = require('telegraf/extra');
 const { prependZero } = require('./helpers');
 
-function Reminder() {
+function Reminder(database) {
+  this.database = database;
   this.action = '';
   this.data = new Object;
   this.data['414245057'] = [
@@ -11,6 +12,10 @@ function Reminder() {
     { id: '3lnqwz0bhjjgnlperp', date: '2018-05-01 18:40:50', text: 'Post the new information', confirmed: 'false' },
     { id: '3lnqwz0bhjjgnlq95t', date: '2018-05-02 09:48:50', text: 'Remind me about my Birthday', confirmed: 'false' }
   ];
+  this.database.connection.query('SELECT * FROM `reminders`', function(error, result) {
+    console.log(error);
+    console.log(result);
+  });
 }
 
 Reminder.prototype.setAction = function(action) {
