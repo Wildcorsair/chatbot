@@ -14,6 +14,7 @@ let reminder      = new Reminder();
 let commandRouter = new Command(app, reminder);
 
 bot.start((ctx) => ctx.reply('Welcome to chat with JohnSilverBot!\nType /menu to see my actions.'));
+reminder.start(config);
 
 bot.command('menu', (ctx) => {
   let menu = "<b>Reminders Menu</b>\n/create - Create new reminder\n/listAll - Display all reminders\n/today - Display reminders for today";

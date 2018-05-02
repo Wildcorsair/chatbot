@@ -1,3 +1,4 @@
+const https  = require('https');
 const uniqid = require('uniqid');
 const Extra  = require('telegraf/extra');
 const { prependZero } = require('./helpers');
@@ -6,15 +7,15 @@ function Reminder() {
   this.action = '';
   this.data = new Object;
   this.data['414245057'] = [
-    { id: '3lnqwz0bhjjgnloty1', date: '2018-05-14', text: 'Lorem ipsum set dolor', confirmed: 'false' },
-    { id: '3lnqwz0bhjjgnlperp', date: '2018-05-01', text: 'Post the new information', confirmed: 'false' },
-    { id: '3lnqwz0bhjjgnlq95t', date: '2018-05-02', text: 'Remind me about my Birthday', confirmed: 'false' }
+    { id: '3lnqwz0bhjjgnloty1', date: '2018-05-14 15:45:50', text: 'Lorem ipsum set dolor', confirmed: 'false' },
+    { id: '3lnqwz0bhjjgnlperp', date: '2018-05-01 18:40:50', text: 'Post the new information', confirmed: 'false' },
+    { id: '3lnqwz0bhjjgnlq95t', date: '2018-05-02 09:48:50', text: 'Remind me about my Birthday', confirmed: 'false' }
   ];
-};
+}
 
 Reminder.prototype.setAction = function(action) {
   this.action = action;
-};
+}
 
 Reminder.prototype.parse = function(ctx) {
   switch (this.action) {
@@ -24,7 +25,7 @@ Reminder.prototype.parse = function(ctx) {
     default:
     ctx.reply('Sorry, no actions for reminder!');
   }
-};
+}
 
 Reminder.prototype.create = function(ctx) {
   if (ctx.update.message.text !== undefined && ctx.update.message.text !== '') {
@@ -39,11 +40,11 @@ Reminder.prototype.create = function(ctx) {
     this.action = '';
     ctx.reply('Your reminder was successfully created.');
   }
-};
+}
 
 Reminder.prototype.delete = function(ctx) {
   // TODO: Delete reminder functionality
-};
+}
 
 /**
  * Method saves the new reminder into the store.
@@ -58,7 +59,7 @@ Reminder.prototype.save = function(id, record) {
     this.data[id] = [];
     this.data[id].push(record);
   }
-};
+}
 
 Reminder.prototype.load = function(id) {
   // console.log('DATA:', this.data);
@@ -66,7 +67,7 @@ Reminder.prototype.load = function(id) {
     return this.data[id];
   }
   return false;
-};
+}
 
 Reminder.prototype.actionRoute = function(ctx) {
   let data = ctx.update.callback_query.data;
@@ -80,7 +81,7 @@ Reminder.prototype.actionRoute = function(ctx) {
 
     this[action](ctx, fromId, reminderId);
   }
-};
+}
 
 /**
  * Method marks selected reminder as confirmed.
@@ -143,6 +144,21 @@ Reminder.prototype.increaseOneDay = function(oldDate) {
   let month = prependZero(reminderDate.getMonth() + 1);
   let day   = prependZero(reminderDate.getDate());
   return year + "-" + month + "-" + day;
+}
+
+Reminder.prototype.start = function(config) {
+  this.alertTimer = setInterval(() => {
+    for (let reminders in this.data) {
+      let list = this.data[reminders];
+
+      for (let i = 0; i < list.lenght; i++) {
+        console.log(list[i].text);
+      }
+
+    }
+    // https.get('https://api.telegram.org/bot' + config.telegram.token + '/sendmessage?chat_id=414245057&text=Test+Message', (res) => {
+    // });
+  }, 3000);
 }
 
 module.exports = Reminder;
