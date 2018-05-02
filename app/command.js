@@ -14,20 +14,11 @@ Command.prototype.parse = function(ctx) {
       console.log('Recived command:', command);
       this.create(ctx);
       break;
-    case '/delete':
-      console.log('Recived command:', command);
-      break;
     case '/listAll':
       this.listAll(ctx);
       console.log('Recived command:', command);
       break;
     case '/today':
-      console.log('Recived command:', command);
-      break;
-    case '/confirm':
-      console.log('Recived command:', command);
-      break;
-    case '/snooze':
       console.log('Recived command:', command);
       break;
     default:
@@ -46,6 +37,7 @@ Command.prototype.delete = function(ctx) {
 };
 
 Command.prototype.listAll = function(ctx) {
+  let isExist = false;
   let reminders = this.reminder.load(ctx.update.message.from.id);
 
   for (let i = 0; i < reminders.length; i++) {
@@ -59,7 +51,12 @@ Command.prototype.listAll = function(ctx) {
     if (reminders[i].confirmed == 'false') {
       let resultText = reminders[i].date + ': ' + reminders[i].text + "\n";
       ctx.reply(resultText, contextMenu);
+      isExist = true;
     }
+  }
+
+  if (!isExist) {
+    ctx.reply('Looks like I don\'t have any reminders for you.');
   }
 
 };

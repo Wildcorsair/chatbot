@@ -13,10 +13,12 @@ const app = apiai(config.apiai.token);
 let reminder      = new Reminder();
 let commandRouter = new Command(app, reminder);
 
-bot.start((ctx) => ctx.reply('Welcome to chat with JohnSilverBot!'));
+bot.start((ctx) => ctx.reply('Welcome to chat with JohnSilverBot!\nType /menu to see my actions.'));
 
 bot.command('menu', (ctx) => {
-  return ctx.reply('You can handle your reminders by my menu.', Extra.markup(
+  let menu = "<b>Reminders Menu</b>\n/create - Create new reminder\n/listAll - Display all reminders\n/today - Display reminders for today";
+
+  return ctx.replyWithHTML(menu, Extra.markup(
     Markup.keyboard(['/create', '/listAll', '/today'], {
       wrap: (btn, index, currentRow) => currentRow.length >= 3
     }).resize()

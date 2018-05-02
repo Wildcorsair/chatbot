@@ -1,4 +1,5 @@
 const uniqid = require('uniqid');
+const Extra  = require('telegraf/extra');
 
 function Reminder() {
   this.action = '';
@@ -35,11 +36,12 @@ Reminder.prototype.create = function(ctx) {
     };
     this.save(ctx.update.message.from.id, record);
     this.action = '';
+    ctx.reply('Your reminder was successfully created.');
   }
 };
 
 Reminder.prototype.delete = function(ctx) {
-  this.action = action;
+  // TODO: Delete reminder functionality
 };
 
 /**
@@ -62,6 +64,7 @@ Reminder.prototype.load = function(id) {
   if (id in this.data) {
     return this.data[id];
   }
+  return false;
 };
 
 Reminder.prototype.actionRoute = function(ctx) {
@@ -111,10 +114,18 @@ Reminder.prototype.snooze = function(ctx, fromId, reminderId) {
 
   for (let i = 0; i < remindersList.length; i++) {
     if (remindersList[i].id == reminderId) {
-      console.log('snooze');
       let incDate = this.increaseOneDay(remindersList[i].date);
       remindersList[i].date = incDate;
       ctx.answerCbQuery('Your reminder was successfully snoozed on one day!');
+
+      const contextMenu = Extra
+        .markdown()
+        .markup((m) => m.inlineKeyboard([
+          m.callbackButton('Confirm', 'confirm:' + remindersList[i].id),
+          m.callbackButton('Snooze', 'snooze:' + remindersList[i].id)
+        ]));
+      let updatedText = remindersList[i].date + ': ' + remindersList[i].text;
+      ctx.editMessageText(updatedText, contextMenu);
     }
   }
 }
