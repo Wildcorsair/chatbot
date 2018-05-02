@@ -1,5 +1,6 @@
 const uniqid = require('uniqid');
 const Extra  = require('telegraf/extra');
+const { prependZero } = require('./helpers');
 
 function Command(dialogflow, reminder) {
   this.dialogflow = dialogflow;
@@ -19,6 +20,7 @@ Command.prototype.parse = function(ctx) {
       console.log('Recived command:', command);
       break;
     case '/today':
+      this.today(ctx);
       console.log('Recived command:', command);
       break;
     default:
@@ -59,6 +61,33 @@ Command.prototype.listAll = function(ctx) {
     ctx.reply('Looks like I don\'t have any reminders for you.');
   }
 
+};
+
+Command.prototype.today = function(ctx) {
+  let today = new Date();
+  let isExist = false;
+  let reminders = this.reminder.load(ctx.update.message.from.id);
+
+  today = today.getFullYear() + '-' + prependZero(today.getMonth() + 1) + '-' + prependZero(today.getDate());
+
+  for (let i = 0; i < reminders.length; i++) {
+      const contextMenu = Extra
+          .markdown()
+          .markup((m) => m.inlineKeyboard([
+            m.callbackButton('Confirm', 'confirm:' + reminders[i].id),
+            m.callbackButton('Snooze', 'snooze:' + reminders[i].id)
+          ]));
+
+      if (reminders[i].date == today && reminders[i].confirmed == 'false') {
+        let resultText = reminders[i].date + ': ' + reminders[i].text + "\n";
+        ctx.reply(resultText, contextMenu);
+        isExist = true;
+      }
+  }
+
+  if (!isExist) {
+    ctx.reply('You don\'t have any reminders for today.');
+  }
 };
 
 Command.prototype.request = function(ctx) {

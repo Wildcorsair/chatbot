@@ -1,5 +1,6 @@
 const uniqid = require('uniqid');
 const Extra  = require('telegraf/extra');
+const { prependZero } = require('./helpers');
 
 function Reminder() {
   this.action = '';
@@ -139,17 +140,9 @@ Reminder.prototype.increaseOneDay = function(oldDate) {
   let reminderDate = new Date(oldDate);
   reminderDate.setDate(reminderDate.getDate() + 1);
   let year  = reminderDate.getFullYear();
-  let month = this.prependZero(reminderDate.getMonth() + 1);
-  let day   = this.prependZero(reminderDate.getDate());
+  let month = prependZero(reminderDate.getMonth() + 1);
+  let day   = prependZero(reminderDate.getDate());
   return year + "-" + month + "-" + day;
-}
-
-Reminder.prototype.prependZero = function(value) {
-  if (value < 10) {
-    return '0' + value;
-  } else {
-    return value;
-  }
 }
 
 module.exports = Reminder;
