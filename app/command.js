@@ -39,55 +39,11 @@ Command.prototype.delete = function(ctx) {
 };
 
 Command.prototype.listAll = function(ctx) {
-  let isExist = false;
-  let reminders = this.reminder.load(ctx.update.message.from.id);
-
-  for (let i = 0; i < reminders.length; i++) {
-    const contextMenu = Extra
-      .markdown()
-      .markup((m) => m.inlineKeyboard([
-        m.callbackButton('Confirm', 'confirm:' + reminders[i].id),
-        m.callbackButton('Snooze', 'snooze:' + reminders[i].id)
-      ]));
-
-    if (reminders[i].confirmed == 'false') {
-      let resultText = reminders[i].date + ': ' + reminders[i].text + "\n";
-      ctx.reply(resultText, contextMenu);
-      isExist = true;
-    }
-  }
-
-  if (!isExist) {
-    ctx.reply('Looks like I don\'t have any reminders for you.');
-  }
-
+  this.reminder.listAll(ctx);
 };
 
 Command.prototype.today = function(ctx) {
-  let today = new Date();
-  let isExist = false;
-  let reminders = this.reminder.load(ctx.update.message.from.id);
-
-  today = today.getFullYear() + '-' + prependZero(today.getMonth() + 1) + '-' + prependZero(today.getDate());
-
-  for (let i = 0; i < reminders.length; i++) {
-      const contextMenu = Extra
-          .markdown()
-          .markup((m) => m.inlineKeyboard([
-            m.callbackButton('Confirm', 'confirm:' + reminders[i].id),
-            m.callbackButton('Snooze', 'snooze:' + reminders[i].id)
-          ]));
-
-      if (reminders[i].date == today && reminders[i].confirmed == 'false') {
-        let resultText = reminders[i].date + ': ' + reminders[i].text + "\n";
-        ctx.reply(resultText, contextMenu);
-        isExist = true;
-      }
-  }
-
-  if (!isExist) {
-    ctx.reply('You don\'t have any reminders for today.');
-  }
+  this.reminder.listToday(ctx);
 };
 
 Command.prototype.request = function(ctx) {

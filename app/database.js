@@ -9,10 +9,6 @@ class Database {
       database : 'chatbot'
     });
   }
-
-  query() {
-    console.log(this.connection);
-  }
 }
 
 module.exports = Database;

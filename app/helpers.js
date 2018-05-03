@@ -6,4 +6,9 @@ function prependZero(value) {
   }
 }
 
-module.exports = {prependZero};
+function parseDate(dateStr) {
+  let tmpDate = new Date(dateStr);
+  return tmpDate.getFullYear() + '-' + prependZero(tmpDate.getMonth() + 1) + '-' + prependZero(tmpDate.getDate());
+}
+
+module.exports = { prependZero, parseDate };

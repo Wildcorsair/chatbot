@@ -2,20 +2,17 @@ const https           = require('https');
 const uniqid          = require('uniqid');
 const Extra           = require('telegraf/extra');
 const { prependZero } = require('./helpers');
+const { parseDate }   = require('./helpers');
 
 function Reminder(database) {
   this.database = database;
   this.action = '';
-  this.data = new Object;
-  this.data['414245057'] = [
-    { id: '3lnqwz0bhjjgnloty1', date: '2018-05-14 15:45:50', text: 'Lorem ipsum set dolor', confirmed: 'false' },
-    { id: '3lnqwz0bhjjgnlperp', date: '2018-05-01 18:40:50', text: 'Post the new information', confirmed: 'false' },
-    { id: '3lnqwz0bhjjgnlq95t', date: '2018-05-02 09:48:50', text: 'Remind me about my Birthday', confirmed: 'false' }
-  ];
-  this.database.connection.query('SELECT * FROM `reminders`', function(error, result) {
-    console.log(error);
-    console.log(result);
-  });
+  // this.data = new Object;
+  // this.data['414245057'] = [
+  //   { id: '3lnqwz0bhjjgnloty1', date: '2018-05-14 15:45:50', text: 'Lorem ipsum set dolor', confirmed: 'false' },
+  //   { id: '3lnqwz0bhjjgnlperp', date: '2018-05-01 18:40:50', text: 'Post the new information', confirmed: 'false' },
+  //   { id: '3lnqwz0bhjjgnlq95t', date: '2018-05-02 09:48:50', text: 'Remind me about my Birthday', confirmed: 'false' }
+  // ];
 }
 
 Reminder.prototype.setAction = function(action) {
@@ -66,12 +63,53 @@ Reminder.prototype.save = function(id, record) {
   }
 }
 
-Reminder.prototype.load = function(id) {
-  // console.log('DATA:', this.data);
-  if (id in this.data) {
-    return this.data[id];
+Reminder.prototype.listAll = function(ctx) {
+  let now   = new Date();
+  let today = parseDate(now);
+  let ctime = now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds();
+
+  let query = 'SELECT * FROM `reminders`  '
+            + 'WHERE `from_id` = ? AND `confirmed` = 0 AND `alert_date` >= ? AND `alert_time` >= ?';
+  this.database.connection.query(query, [ctx.update.message.from.id, today, ctime], (err, res) => {
+    this.display(ctx, res);
+    if (err !== null) {
+      console.log(err);
+    }
+  });
+}
+
+Reminder.prototype.listToday = function(ctx) {
+  let now   = new Date();
+  let today = parseDate(now);
+  let ctime = now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds();
+
+  let query = 'SELECT * FROM `reminders` '
+            + 'WHERE `from_id` = ? AND `confirmed` = 0 AND `alert_date` = ? AND `alert_time` >= ? ORDER BY `alert_time`';
+  this.database.connection.query(query, [ctx.update.message.from.id, today, ctime], (err, res) => {
+    this.display(ctx, res);
+    if (err !== null) {
+      console.log(err);
+    }
+  });
+}
+
+Reminder.prototype.display = function(ctx, reminders) {
+  if (reminders.length === 0) {
+    ctx.reply('Looks like I don\'t have any reminders for you.');
+    return false;
   }
-  return false;
+
+  for (let i = 0; i < reminders.length; i++) {
+    const contextMenu = Extra
+    .markdown()
+    .markup((m) => m.inlineKeyboard([
+      m.callbackButton('Confirm', 'confirm:' + reminders[i].id),
+      m.callbackButton('Snooze', 'snooze:' + reminders[i].id)
+    ]));
+
+    let resultText = parseDate(reminders[i].alert_date) + ' ' + reminders[i].alert_time + ': ' + reminders[i].content + "\n";
+    ctx.reply(resultText, contextMenu);
+  }
 }
 
 Reminder.prototype.actionRoute = function(ctx) {
@@ -98,15 +136,18 @@ Reminder.prototype.actionRoute = function(ctx) {
 Reminder.prototype.confirm = function(ctx, fromId, reminderId) {
   let messageId = ctx.update.callback_query.message.message_id;
   let chatId = ctx.update.callback_query.message.chat.id;
-  let remindersList = this.load(fromId);
 
-  for (let i = 0; i < remindersList.length; i++) {
-    if (remindersList[i].id == reminderId) {
-      remindersList[i].confirmed = true;
+  let query = 'UPDATE `reminders` SET `confirmed` = true WHERE `id` = ?';
+  this.database.connection.query(query, reminderId, (err, res) => {
+    if (res.affectedRows > 0) {
       ctx.answerCbQuery('Your reminder was successfully confirmed!');
       ctx.tg.deleteMessage(chatId, messageId);
     }
-  }
+
+    if (err !== null) {
+      console.log(err);
+    }
+  });
 }
 
 /**
