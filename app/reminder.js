@@ -13,12 +13,6 @@ function Reminder(database) {
     time: '',
     text: ''
   };
-  // this.data = new Object;
-  // this.data['414245057'] = [
-  //   { id: '3lnqwz0bhjjgnloty1', date: '2018-05-14 15:45:50', text: 'Lorem ipsum set dolor', confirmed: 'false' },
-  //   { id: '3lnqwz0bhjjgnlperp', date: '2018-05-01 18:40:50', text: 'Post the new information', confirmed: 'false' },
-  //   { id: '3lnqwz0bhjjgnlq95t', date: '2018-05-02 09:48:50', text: 'Remind me about my Birthday', confirmed: 'false' }
-  // ];
 }
 
 Reminder.prototype.setAction = function(action) {
@@ -70,21 +64,6 @@ Reminder.prototype.createText = function(ctx) {
   }
 }
 
-// Reminder.prototype.create = function(ctx) {
-//   if (ctx.update.message.text !== undefined && ctx.update.message.text !== '') {
-//     let parts = ctx.update.message.text.split(':');
-//     let record = {
-//       id: uniqid(),
-//       date: parts[0],
-//       text: parts[1],
-//       confirmed: 'false'
-//     };
-//     this.save(ctx.update.message.from.id, record);
-//     this.action = '';
-//     ctx.reply('Your reminder was successfully created.');
-//   }
-// }
-
 Reminder.prototype.delete = function(ctx) {
   // TODO: Delete reminder functionality
 }
@@ -95,14 +74,6 @@ Reminder.prototype.delete = function(ctx) {
  * @param {int} id User identifier
  * @param {object} record Data with reminder
  */
-// Reminder.prototype.save = function(id, record) {
-//   if (id in this.data) {
-//     this.data[id].push(record);
-//   } else {
-//     this.data[id] = [];
-//     this.data[id].push(record);
-//   }
-// }
 Reminder.prototype.save = function(ctx) {
   let sql = 'INSERT INTO `reminders` ('
           + '`from_id`, `alert_date`, `alert_time`, `content`'
@@ -256,17 +227,30 @@ Reminder.prototype.increaseOneDay = function(oldDate) {
 
 Reminder.prototype.start = function(config) {
   this.alertTimer = setInterval(() => {
-    for (let reminders in this.data) {
-      let list = this.data[reminders];
-
-      for (let i = 0; i < list.lenght; i++) {
-        console.log(list[i].text);
+    let now   = new Date();
+    let today = parseDate(now);
+    let ctime = now.getHours() + ':' + now.getMinutes() + ':00';
+    let sql   = 'SELECT * FROM `reminders` '
+              + 'WHERE `alert_date` = ? AND `alert_time` = ?';
+    this.database.connection.query(sql, [today, ctime], (err, res) => {
+      this.alert(config, res);
+      if (err !== null) {
+        console.log(err);
       }
+    });
+  }, 60000);
+}
 
-    }
-    // https.get('https://api.telegram.org/bot' + config.telegram.token + '/sendmessage?chat_id=414245057&text=Test+Message', (res) => {
-    // });
-  }, 3000);
+Reminder.prototype.alert = function(config, reminders) {
+  if (reminders.length === 0) {
+    return false;
+  }
+
+  for (let i = 0; i < reminders.length; i++) {
+    https.get('https://api.telegram.org/bot' + config.telegram.token + '/sendmessage?chat_id=' + reminders[i].from_id + '&text=' + reminders[i].content, (res) => {
+      console.log('Sent!');
+    });
+  }
 }
 
 module.exports = Reminder;
