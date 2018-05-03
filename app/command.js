@@ -29,7 +29,7 @@ Command.prototype.parse = function(ctx) {
 };
 
 Command.prototype.create = function(ctx) {
-  this.action = 'create';
+  this.action = 'create-date';
   this.request(ctx);
 };
 

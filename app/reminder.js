@@ -21,7 +21,7 @@ Reminder.prototype.setAction = function(action) {
 
 Reminder.prototype.parse = function(ctx) {
   switch (this.action) {
-    case 'create':
+    case 'create-date':
       this.create(ctx);
       break;
     default:
