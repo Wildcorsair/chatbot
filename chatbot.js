@@ -28,14 +28,14 @@ bot.command('menu', (ctx) => {
   ))
 })
 
-bot.hears(/(.*)/i, (ctx, msg) => {
+bot.hears(/(.*)/i, (ctx) => {
 
   if (commandRouter.action == '') {
     commandRouter.parse(ctx);
   } else {
     reminder.setAction(commandRouter.action);
     reminder.parse(ctx);
-    commandRouter.action = '';
+    commandRouter.action = reminder.getAction();
   }
 
 });

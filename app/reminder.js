@@ -7,6 +7,12 @@ const { parseDate }   = require('./helpers');
 function Reminder(database) {
   this.database = database;
   this.action = '';
+  this.record = {
+    from_id: '',
+    date: '',
+    time: '',
+    text: ''
+  };
   // this.data = new Object;
   // this.data['414245057'] = [
   //   { id: '3lnqwz0bhjjgnloty1', date: '2018-05-14 15:45:50', text: 'Lorem ipsum set dolor', confirmed: 'false' },
@@ -19,30 +25,65 @@ Reminder.prototype.setAction = function(action) {
   this.action = action;
 }
 
+Reminder.prototype.getAction = function() {
+  return this.action;
+}
+
 Reminder.prototype.parse = function(ctx) {
   switch (this.action) {
     case 'create-date':
-      this.create(ctx);
+      this.createDate(ctx);
+      break;
+    case 'create-time':
+      this.createTime(ctx);
+      break;
+    case 'create-text':
+      this.createText(ctx);
       break;
     default:
     ctx.reply('Sorry, no actions for reminder!');
   }
 }
 
-Reminder.prototype.create = function(ctx) {
+Reminder.prototype.createDate = function(ctx) {
   if (ctx.update.message.text !== undefined && ctx.update.message.text !== '') {
-    let parts = ctx.update.message.text.split(':');
-    let record = {
-      id: uniqid(),
-      date: parts[0],
-      text: parts[1],
-      confirmed: 'false'
-    };
-    this.save(ctx.update.message.from.id, record);
-    this.action = '';
-    ctx.reply('Your reminder was successfully created.');
+    this.record.from_id = ctx.update.message.from.id;
+    this.record.date = ctx.update.message.text;
+    this.action = 'create-time';
+    ctx.reply('Please, enter time in format: hh:mm');
   }
 }
+
+Reminder.prototype.createTime = function(ctx) {
+  if (ctx.update.message.text !== undefined && ctx.update.message.text !== '') {
+    this.record.time = ctx.update.message.text;
+    this.action = 'create-text';
+    ctx.reply('Type your reminder text');
+  }
+}
+
+Reminder.prototype.createText = function(ctx) {
+  if (ctx.update.message.text !== undefined && ctx.update.message.text !== '') {
+    this.record.text = ctx.update.message.text;
+    this.action = '';
+    this.save(ctx);
+  }
+}
+
+// Reminder.prototype.create = function(ctx) {
+//   if (ctx.update.message.text !== undefined && ctx.update.message.text !== '') {
+//     let parts = ctx.update.message.text.split(':');
+//     let record = {
+//       id: uniqid(),
+//       date: parts[0],
+//       text: parts[1],
+//       confirmed: 'false'
+//     };
+//     this.save(ctx.update.message.from.id, record);
+//     this.action = '';
+//     ctx.reply('Your reminder was successfully created.');
+//   }
+// }
 
 Reminder.prototype.delete = function(ctx) {
   // TODO: Delete reminder functionality
@@ -54,13 +95,34 @@ Reminder.prototype.delete = function(ctx) {
  * @param {int} id User identifier
  * @param {object} record Data with reminder
  */
-Reminder.prototype.save = function(id, record) {
-  if (id in this.data) {
-    this.data[id].push(record);
-  } else {
-    this.data[id] = [];
-    this.data[id].push(record);
-  }
+// Reminder.prototype.save = function(id, record) {
+//   if (id in this.data) {
+//     this.data[id].push(record);
+//   } else {
+//     this.data[id] = [];
+//     this.data[id].push(record);
+//   }
+// }
+Reminder.prototype.save = function(ctx) {
+  let sql = 'INSERT INTO `reminders` ('
+          + '`from_id`, `alert_date`, `alert_time`, `content`'
+          + ') VALUES (?, ?, ?, ?)';
+  this.database.connection.query(
+    sql, [
+      this.record.from_id,
+      this.record.date,
+      this.record.time,
+      this.record.text
+    ], (err, res) => {
+      if (res.affectedRows > 0) {
+        ctx.reply('Your reminder was successfully saved!');
+      }
+
+      if (err !== null) {
+        console.log(err);
+      }
+    }
+  );
 }
 
 Reminder.prototype.listAll = function(ctx) {

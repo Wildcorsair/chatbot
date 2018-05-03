@@ -33,10 +33,10 @@ Command.prototype.create = function(ctx) {
   this.request(ctx);
 };
 
-Command.prototype.delete = function(ctx) {
-  this.action = 'delete';
-  this.request(ctx);
-};
+// Command.prototype.delete = function(ctx) {
+//   this.action = 'delete';
+//   this.request(ctx);
+// };
 
 Command.prototype.listAll = function(ctx) {
   this.reminder.listAll(ctx);
