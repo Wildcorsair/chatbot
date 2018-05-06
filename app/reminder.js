@@ -238,7 +238,7 @@ Reminder.prototype.start = function(config) {
         console.log(err);
       }
     });
-  }, 60000);
+  }, 10000);
 }
 
 Reminder.prototype.alert = function(config, reminders) {
@@ -247,7 +247,15 @@ Reminder.prototype.alert = function(config, reminders) {
   }
 
   for (let i = 0; i < reminders.length; i++) {
-    https.get('https://api.telegram.org/bot' + config.telegram.token + '/sendmessage?chat_id=' + reminders[i].from_id + '&text=' + reminders[i].content, (res) => {
+
+    let reply_markup = JSON.stringify({
+      inline_keyboard: [
+        [{ text: 'Confirm', callback_data: 'confirm:' + reminders[i].id }],
+        [{ text: 'Snooze', callback_data: 'snooze:' + reminders[i].id }]
+      ]
+    });
+
+    https.get('https://api.telegram.org/bot' + config.telegram.token + '/sendmessage?chat_id=' + reminders[i].from_id + '&text=' + reminders[i].content + '&reply_markup=' + reply_markup, (res) => {
       console.log('Sent!');
     });
   }
