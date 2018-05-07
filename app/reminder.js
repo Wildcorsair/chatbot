@@ -4,10 +4,12 @@ const Extra           = require('telegraf/extra');
 const { prependZero } = require('./helpers');
 const { parseDate }   = require('./helpers');
 
-function Reminder(database) {
+function Reminder(dialogflow, database) {
+  this.dialogflow = dialogflow;
   this.database = database;
   this.action = '';
   this.record = {
+    id: '',
     from_id: '',
     date: '',
     time: '',
@@ -33,6 +35,12 @@ Reminder.prototype.parse = function(ctx) {
       break;
     case 'create-text':
       this.createText(ctx);
+      break;
+    case 'update-date':
+      this.updateDate(ctx);
+      break;
+    case 'update-time':
+      this.updateTime(ctx);
       break;
     default:
     ctx.reply('Sorry, no actions for reminder!');
@@ -191,24 +199,45 @@ Reminder.prototype.confirm = function(ctx, fromId, reminderId) {
  * @param {string} reminderId Reminder identifier
  */
 Reminder.prototype.snooze = function(ctx, fromId, reminderId) {
-  let remindersList = this.load(fromId);
+  this.record.id = reminderId;
+  this.record.from_id = fromId;
+  this.action = 'update-date';
+  ctx.reply('Please, type new date in format: yyyy-mm-dd');
+}
 
-  for (let i = 0; i < remindersList.length; i++) {
-    if (remindersList[i].id == reminderId) {
-      let incDate = this.increaseOneDay(remindersList[i].date);
-      remindersList[i].date = incDate;
-      ctx.answerCbQuery('Your reminder was successfully snoozed on one day!');
-
-      const contextMenu = Extra
-        .markdown()
-        .markup((m) => m.inlineKeyboard([
-          m.callbackButton('Confirm', 'confirm:' + remindersList[i].id),
-          m.callbackButton('Snooze', 'snooze:' + remindersList[i].id)
-        ]));
-      let updatedText = remindersList[i].date + ': ' + remindersList[i].text;
-      ctx.editMessageText(updatedText, contextMenu);
-    }
+Reminder.prototype.updateDate = function(ctx) {
+  if (ctx.update.message.text !== undefined && ctx.update.message.text !== '') {
+    this.record.date = ctx.update.message.text;
+    this.action = 'update-time';
+    ctx.reply('Please, type new time in format: hh:mm');
   }
+
+}
+
+Reminder.prototype.updateTime = function(ctx) {
+  if (ctx.update.message.text !== undefined && ctx.update.message.text !== '') {
+    this.record.time = ctx.update.message.text;
+    this.update(ctx);
+  }
+}
+
+Reminder.prototype.update = function(ctx) {
+  let sql = 'UPDATE `reminders` SET `alert_date` = ?, `alert_time` = ? WHERE `id` = ?';
+  this.database.connection.query(sql, [this.record.date, this.record.time, this.record.id], (err, res) => {
+    if (res.affectedRows > 0) {
+      this.action = '';
+      ctx.reply('Your reminder was successfully snoozed!');
+    }
+
+    if (err !== null) {
+      console.log(err);
+    }
+  });
+}
+
+Reminder.prototype.cancel = function(ctx) {
+  this.setAction('cancel');
+  ctx.reply('Your action was canceled.');
 }
 
 /**
@@ -231,14 +260,14 @@ Reminder.prototype.start = function(config) {
     let today = parseDate(now);
     let ctime = now.getHours() + ':' + now.getMinutes() + ':00';
     let sql   = 'SELECT * FROM `reminders` '
-              + 'WHERE `alert_date` = ? AND `alert_time` = ?';
+              + 'WHERE `alert_date` = ? AND `alert_time` = ? AND `confirmed` = false';
     this.database.connection.query(sql, [today, ctime], (err, res) => {
       this.alert(config, res);
       if (err !== null) {
         console.log(err);
       }
     });
-  }, 10000);
+  }, 60000);
 }
 
 Reminder.prototype.alert = function(config, reminders) {
@@ -250,8 +279,7 @@ Reminder.prototype.alert = function(config, reminders) {
 
     let reply_markup = JSON.stringify({
       inline_keyboard: [
-        [{ text: 'Confirm', callback_data: 'confirm:' + reminders[i].id }],
-        [{ text: 'Snooze', callback_data: 'snooze:' + reminders[i].id }]
+        [{ text: 'Confirm', callback_data: 'confirm:' + reminders[i].id }, { text: 'Snooze', callback_data: 'snooze:' + reminders[i].id }]
       ]
     });
 

@@ -23,6 +23,10 @@ Command.prototype.parse = function(ctx) {
       this.today(ctx);
       console.log('Recived command:', command);
       break;
+    case '/cancel':
+      this.cancel(ctx);
+      console.log('Recived command:', command);
+      break;
     default:
       this.request(ctx);
   }
@@ -37,6 +41,10 @@ Command.prototype.create = function(ctx) {
 //   this.action = 'delete';
 //   this.request(ctx);
 // };
+
+Command.prototype.delete = function(ctx) {
+  this.reminder.cancel(ctx);
+}
 
 Command.prototype.listAll = function(ctx) {
   this.reminder.listAll(ctx);

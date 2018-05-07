@@ -12,7 +12,7 @@ const bot = new Telegraf(config.telegram.token);
 const app = apiai(config.apiai.token);
 const database = new Database();
 
-let reminder      = new Reminder(database);
+let reminder      = new Reminder(app, database);
 let commandRouter = new Command(app, reminder);
 
 bot.start((ctx) => ctx.reply('Welcome to chat with JohnSilverBot!\nType /menu to see my actions.'));
@@ -30,12 +30,14 @@ bot.command('menu', (ctx) => {
 
 bot.hears(/(.*)/i, (ctx) => {
 
-  if (commandRouter.action == '') {
+  if (commandRouter.action == '' && reminder.getAction() == '') {
     commandRouter.parse(ctx);
-  } else {
+  } else if (commandRouter.action != '' && reminder.getAction() == '') {
     reminder.setAction(commandRouter.action);
     reminder.parse(ctx);
     commandRouter.action = reminder.getAction();
+  } else {
+    reminder.parse(ctx);
   }
 
 });
