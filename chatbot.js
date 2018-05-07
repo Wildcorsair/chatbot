@@ -29,7 +29,8 @@ bot.command('menu', (ctx) => {
 })
 
 bot.hears(/(.*)/i, (ctx) => {
-
+  // console.log('Command action:', commandRouter.action);
+  // console.log('Reminder action:', reminder.getAction());
   if (commandRouter.action == '' && reminder.getAction() == '') {
     commandRouter.parse(ctx);
   } else if (commandRouter.action != '' && reminder.getAction() == '') {

@@ -8,8 +8,21 @@ function Command(dialogflow, reminder) {
   this.action = '';
 };
 
+Command.prototype.setAction = function(action) {
+  this.action = action;
+}
+
+Command.prototype.getAction = function() {
+  return this.action;
+}
+
+Command.prototype.clearAction = function() {
+  this.action = '';
+}
+
 Command.prototype.parse = function(ctx) {
   let command = ctx.update.message.text;
+  this.clearAction();
   switch (command) {
     case '/create':
       console.log('Recived command:', command);
@@ -33,7 +46,7 @@ Command.prototype.parse = function(ctx) {
 };
 
 Command.prototype.create = function(ctx) {
-  this.action = 'create-date';
+  this.reminder.setAction('create-date');
   this.request(ctx);
 };
 
@@ -42,7 +55,7 @@ Command.prototype.create = function(ctx) {
 //   this.request(ctx);
 // };
 
-Command.prototype.delete = function(ctx) {
+Command.prototype.cancel = function(ctx) {
   this.reminder.cancel(ctx);
 }
 

@@ -1,8 +1,7 @@
-const https           = require('https');
-const uniqid          = require('uniqid');
-const Extra           = require('telegraf/extra');
-const { prependZero } = require('./helpers');
-const { parseDate }   = require('./helpers');
+const https            = require('https');
+const uniqid           = require('uniqid');
+const Extra            = require('telegraf/extra');
+const { prependZero, parseDate, validateDate, validateTime }  = require('./helpers');
 
 function Reminder(dialogflow, database) {
   this.dialogflow = dialogflow;
@@ -25,6 +24,10 @@ Reminder.prototype.getAction = function() {
   return this.action;
 }
 
+Reminder.prototype.clearAction = function() {
+  this.action = '';
+}
+
 Reminder.prototype.parse = function(ctx) {
   switch (this.action) {
     case 'create-date':
@@ -42,6 +45,9 @@ Reminder.prototype.parse = function(ctx) {
     case 'update-time':
       this.updateTime(ctx);
       break;
+    case 'cancel':
+      this.cancel(ctx);
+      break;
     default:
     ctx.reply('Sorry, no actions for reminder!');
   }
@@ -50,24 +56,32 @@ Reminder.prototype.parse = function(ctx) {
 Reminder.prototype.createDate = function(ctx) {
   if (ctx.update.message.text !== undefined && ctx.update.message.text !== '') {
     this.record.from_id = ctx.update.message.from.id;
-    this.record.date = ctx.update.message.text;
-    this.action = 'create-time';
-    ctx.reply('Please, enter time in format: hh:mm');
+    if (validateDate(ctx.update.message.text)) {
+      this.record.date = ctx.update.message.text;
+      this.setAction('create-time');
+      ctx.reply('Please, enter time in format: hh:mm');
+    } else {
+      ctx.reply('Invalid date value, please type again.');
+    }
   }
 }
 
 Reminder.prototype.createTime = function(ctx) {
   if (ctx.update.message.text !== undefined && ctx.update.message.text !== '') {
-    this.record.time = ctx.update.message.text;
-    this.action = 'create-text';
-    ctx.reply('Type your reminder text');
+    if (validateTime(ctx.update.message.text)) {
+      this.record.time = ctx.update.message.text;
+      this.setAction('create-text');
+      this.request(ctx, 'create-text');
+    } else {
+      this.request(ctx, 'invalid-time');
+    }
   }
 }
 
 Reminder.prototype.createText = function(ctx) {
   if (ctx.update.message.text !== undefined && ctx.update.message.text !== '') {
     this.record.text = ctx.update.message.text;
-    this.action = '';
+    this.clearAction();
     this.save(ctx);
   }
 }
@@ -110,7 +124,9 @@ Reminder.prototype.listAll = function(ctx) {
   let ctime = now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds();
 
   let query = 'SELECT * FROM `reminders`  '
-            + 'WHERE `from_id` = ? AND `confirmed` = 0 AND `alert_date` >= ? AND `alert_time` >= ?';
+            + 'WHERE `from_id` = ? AND `confirmed` = 0 '
+            + 'AND `alert_date` >= ? '
+            + 'ORDER BY `alert_date`, `alert_time`';
   this.database.connection.query(query, [ctx.update.message.from.id, today, ctime], (err, res) => {
     this.display(ctx, res);
     if (err !== null) {
@@ -201,31 +217,44 @@ Reminder.prototype.confirm = function(ctx, fromId, reminderId) {
 Reminder.prototype.snooze = function(ctx, fromId, reminderId) {
   this.record.id = reminderId;
   this.record.from_id = fromId;
-  this.action = 'update-date';
+  this.setAction('update-date');
   ctx.reply('Please, type new date in format: yyyy-mm-dd');
 }
 
 Reminder.prototype.updateDate = function(ctx) {
   if (ctx.update.message.text !== undefined && ctx.update.message.text !== '') {
-    this.record.date = ctx.update.message.text;
-    this.action = 'update-time';
-    ctx.reply('Please, type new time in format: hh:mm');
+    if (validateDate(ctx.update.message.text)) {
+      this.record.date = ctx.update.message.text;
+      this.setAction('update-time');
+      ctx.reply('Please, type new time in format: hh:mm');
+    } else {
+      ctx.reply('Invalid date value, please try again.');
+    }
   }
 
 }
 
 Reminder.prototype.updateTime = function(ctx) {
   if (ctx.update.message.text !== undefined && ctx.update.message.text !== '') {
-    this.record.time = ctx.update.message.text;
-    this.update(ctx);
+    if (validateTime(ctx.update.message.text)) {
+      this.record.time = ctx.update.message.text;
+      this.clearAction();
+      this.update(ctx);
+    } else {
+      this.request(ctx, 'invalid-time');
+    }
   }
 }
 
+/**
+ * Method updates the reminder date and time.
+ *
+ * @param {object} ctx Message context
+ */
 Reminder.prototype.update = function(ctx) {
   let sql = 'UPDATE `reminders` SET `alert_date` = ?, `alert_time` = ? WHERE `id` = ?';
   this.database.connection.query(sql, [this.record.date, this.record.time, this.record.id], (err, res) => {
     if (res.affectedRows > 0) {
-      this.action = '';
       ctx.reply('Your reminder was successfully snoozed!');
     }
 
@@ -236,22 +265,8 @@ Reminder.prototype.update = function(ctx) {
 }
 
 Reminder.prototype.cancel = function(ctx) {
-  this.setAction('cancel');
+  this.clearAction();
   ctx.reply('Your action was canceled.');
-}
-
-/**
- * Method increases the granted date to one day.
- *
- * @param {string} oldDate Date in string format
- */
-Reminder.prototype.increaseOneDay = function(oldDate) {
-  let reminderDate = new Date(oldDate);
-  reminderDate.setDate(reminderDate.getDate() + 1);
-  let year  = reminderDate.getFullYear();
-  let month = prependZero(reminderDate.getMonth() + 1);
-  let day   = prependZero(reminderDate.getDate());
-  return year + "-" + month + "-" + day;
 }
 
 Reminder.prototype.start = function(config) {
@@ -288,5 +303,21 @@ Reminder.prototype.alert = function(config, reminders) {
     });
   }
 }
+
+Reminder.prototype.request = function(ctx, text) {
+  var request = this.dialogflow.textRequest(text, {
+    sessionId: uniqid()
+  });
+
+  request.on('response', function(response) {
+    ctx.reply(response.result.fulfillment.speech);
+  });
+
+  request.on('error', function(error) {
+    console.log(error);
+  });
+
+  request.end();
+};
 
 module.exports = Reminder;
