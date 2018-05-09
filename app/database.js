@@ -1,12 +1,15 @@
 const mysql = require('mysql');
 
+/**
+ * Class implements database connection.
+ */
 class Database {
-  constructor() {
+  constructor(config) {
     this.connection = mysql.createConnection({
-      host     : 'localhost',
-      user     : 'root',
-      password : '123321',
-      database : 'chatbot'
+      host     : config.database.host,
+      user     : config.database.user,
+      password : config.database.password,
+      database : config.database.database
     });
   }
 }

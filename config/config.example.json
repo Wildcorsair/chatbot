@@ -1,0 +1,14 @@
+{
+    "telegram": {
+      "token": "<Telegram Token>"
+    },
+    "apiai": {
+      "token": "<Dialogflow Token>"
+    },
+    "database": {
+      "host": "<database host>",
+      "user": "<database user>",
+      "password": "<database password>",
+      "database": "<database name>"
+    }
+}
